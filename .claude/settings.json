@@ -1,0 +1,36 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Read",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /Users/stateside/Documents/uigen/.claude/hooks/read_hook.js"
+          }
+        ]
+      },
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /Users/stateside/Documents/uigen/.claude/hooks/query_hook.js",
+            "timeout": 300
+          }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Write|Edit|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /Users/stateside/Documents/uigen/.claude/hooks/tsc.js"
+          }
+        ]
+      }
+    ]
+  }
+}

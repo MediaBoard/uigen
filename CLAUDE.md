@@ -36,6 +36,7 @@ All `dev` and `build` scripts prefix commands with `NODE_OPTIONS='--require ./no
 ## Environment
 
 Copy `.env` and set:
+
 - `ANTHROPIC_API_KEY` — optional; omit to use the built-in mock provider
 - `JWT_SECRET` — optional; defaults to `"development-secret-key"` in dev
 
@@ -53,24 +54,24 @@ Copy `.env` and set:
 
 ### Key modules
 
-| Path | Role |
-|------|------|
-| `src/lib/file-system.ts` | `VirtualFileSystem` — Map-backed, in-memory FS; `serialize()`/`deserialize()` for Prisma persistence |
-| `src/lib/contexts/file-system-context.tsx` | React context wrapping VirtualFileSystem; dispatches AI tool-call results as file ops |
-| `src/lib/contexts/chat-context.tsx` | Wraps Vercel AI SDK `useChat`; manages messages and tool-call routing |
-| `src/lib/provider.ts` | Returns Anthropic (`claude-haiku-4-5`) or `MockLanguageModel`; max 10k tokens, 40 tool steps |
-| `src/lib/tools/str-replace.ts` | `str_replace_editor` tool: `view`, `create`, `str_replace`, `insert`, `undo` commands |
-| `src/lib/tools/file-manager.ts` | `file_manager` tool: `list`, `delete`, `view`, `create`, `rename` commands |
-| `src/app/api/chat/route.ts` | Streaming endpoint; persists project on `onFinish` |
-| `src/lib/auth.ts` | JWT sessions via `jose`; 7-day HttpOnly cookies |
-| `src/actions/index.ts` | Server Actions: signUp, signIn, signOut, getUser (bcrypt, 10 rounds) |
-| `src/lib/transform/jsx-transformer.ts` | Babel-based JSX → JS transform for the browser preview iframe |
-| `src/lib/prompts/generation.tsx` | System prompt sent to the AI on every chat request |
-| `src/lib/anon-work-tracker.ts` | `sessionStorage` helpers to preserve anonymous work across sign-in |
+| Path                                       | Role                                                                                                 |
+| ------------------------------------------ | ---------------------------------------------------------------------------------------------------- |
+| `src/lib/file-system.ts`                   | `VirtualFileSystem` — Map-backed, in-memory FS; `serialize()`/`deserialize()` for Prisma persistence |
+| `src/lib/contexts/file-system-context.tsx` | React context wrapping VirtualFileSystem; dispatches AI tool-call results as file ops                |
+| `src/lib/contexts/chat-context.tsx`        | Wraps Vercel AI SDK `useChat`; manages messages and tool-call routing                                |
+| `src/lib/provider.ts`                      | Returns Anthropic (`claude-haiku-4-5`) or `MockLanguageModel`; max 10k tokens, 40 tool steps         |
+| `src/lib/tools/str-replace.ts`             | `str_replace_editor` tool: `view`, `create`, `str_replace`, `insert`, `undo` commands                |
+| `src/lib/tools/file-manager.ts`            | `file_manager` tool: `list`, `delete`, `view`, `create`, `rename` commands                           |
+| `src/app/api/chat/route.ts`                | Streaming endpoint; persists project on `onFinish`                                                   |
+| `src/lib/auth.ts`                          | JWT sessions via `jose`; 7-day HttpOnly cookies                                                      |
+| `src/actions/index.ts`                     | Server Actions: signUp, signIn, signOut, getUser (bcrypt, 10 rounds)                                 |
+| `src/lib/transform/jsx-transformer.ts`     | Babel-based JSX → JS transform for the browser preview iframe                                        |
+| `src/lib/prompts/generation.tsx`           | System prompt sent to the AI on every chat request                                                   |
+| `src/lib/anon-work-tracker.ts`             | `sessionStorage` helpers to preserve anonymous work across sign-in                                   |
 
 ### Database schema (SQLite)
 
-```
+```text
 User    { id, email, password, projects[] }
 Project { id, name, userId?, messages (JSON string), data (JSON string) }
 ```
@@ -80,6 +81,7 @@ Anonymous projects have `userId = null` and are not persisted between sessions. 
 ### UI layout
 
 `main-content.tsx` renders two `react-resizable-panels`:
+
 - Left (35%): `ChatInterface`
 - Right (65%): tabs for live Preview (`PreviewFrame` — iframe with Babel-compiled output) and Code (file tree 30% + Monaco editor 70%)
 
@@ -106,7 +108,7 @@ The system prompt enforces rules the AI must follow when generating code. When e
 - Style exclusively with Tailwind classes — no hardcoded inline styles.
 - No HTML files; `App.jsx` is the only entry point.
 
-> **Note on `@/` alias duality**: In this Next.js project's own source, `@/` maps to `src/` (standard tsconfig paths). Inside the *AI-generated* virtual file system, `@/` maps to the virtual root `/`. These are two separate resolution systems.
+> **Note on `@/` alias duality**: In this Next.js project's own source, `@/` maps to `src/` (standard tsconfig paths). Inside the _AI-generated_ virtual file system, `@/` maps to the virtual root `/`. These are two separate resolution systems.
 
 ### Mock provider
 
@@ -115,3 +117,37 @@ When `ANTHROPIC_API_KEY` is absent, `MockLanguageModel` in `src/lib/provider.ts`
 ### Tests
 
 Tests use **Vitest** with a `jsdom` environment and `@testing-library/react`. Config is in `vitest.config.mts`. Test files live in `__tests__/` subdirectories next to the code they test (e.g., `src/components/chat/__tests__/`).
+
+## E-commerce DB utilities (`db/`)
+
+A standalone SQLite utility package — separate from the Next.js app, with its own `package.json` and `tsconfig.json`.
+
+```bash
+cd db && npm install   # install sqlite/tsx deps
+tsx main.ts            # initialise the database schema
+tsx sdk.ts             # run Claude Agent SDK examples
+```
+
+### Structure
+
+| Path           | Role                                                                                        |
+| -------------- | ------------------------------------------------------------------------------------------- |
+| `db/schema.ts` | `createSchema()` — creates all SQLite tables                                                |
+| `db/main.ts`   | Entry point; opens `ecommerce.db` and runs `createSchema`                                   |
+| `db/sdk.ts`    | Claude Agent SDK usage example                                                              |
+| `db/task.md`   | Outstanding task: Slack alert for orders pending > 3 days                                   |
+| `db/queries/`  | Query modules (customer, product, order, analytics, inventory, promotion, review, shipping) |
+
+### Critical guidance
+
+- All database queries must be written in `db/queries/`
+- Use parameterized queries (`db.get(query, [param])`) — never string interpolation
+- Single-record queries use `db.get()`, multi-record use `db.all()`
+
+## Claude hooks (`.claude/hooks/`)
+
+| Hook            | Trigger                 | Purpose                                                                                                  |
+| --------------- | ----------------------- | -------------------------------------------------------------------------------------------------------- |
+| `read_hook.js`  | PreToolUse: Read        | Blocks reading any `.env` file                                                                           |
+| `query_hook.js` | PreToolUse: Write/Edit  | Detects duplicate query functions using Claude Agent SDK (currently disabled — `process.exit(0)` at top) |
+| `tsc.js`        | PostToolUse: Write/Edit | Runs TypeScript type-check after every `.ts`/`.tsx` file edit                                            |
