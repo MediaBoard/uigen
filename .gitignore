@@ -52,3 +52,6 @@ next-env.d.ts
 /db/ecommerce.db
 /db/dist/
 /db/node_modules/
+
+# claude hooks runtime output
+.claude/tool_calls.log

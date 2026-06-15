@@ -2,6 +2,24 @@
   "hooks": {
     "PreToolUse": [
       {
+        "matcher": ".*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /Users/stateside/Documents/uigen/.claude/hooks/tool_logger.js"
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node /Users/stateside/Documents/uigen/.claude/hooks/bash_safety.js"
+          }
+        ]
+      },
+      {
         "matcher": "Read",
         "hooks": [
           {
